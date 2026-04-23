@@ -96,7 +96,6 @@ DATABASES = {
         conn_max_age=600,
     )
 }
-print("Using production db")
 
 
 # Password validation
