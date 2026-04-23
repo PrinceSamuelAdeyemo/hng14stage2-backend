@@ -1,9 +1,9 @@
 from django.db import models
-import uuid6
+import uuid
 from django.utils import timezone
 
 class Profile(models.Model):
-	id = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
+	id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
 	name = models.CharField(max_length=255, unique=True)
 	gender = models.CharField(max_length=10)
 	gender_probability = models.FloatField()

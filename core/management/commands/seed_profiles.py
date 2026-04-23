@@ -12,10 +12,10 @@ class Command(BaseCommand):
         parser.add_argument('--json_path', type=str, default=None, help='Path to the profiles JSON file (default: data/profiles.json)')
 
     def handle(self, *args, **options):
-        json_path = options.get('json_path') or 'data/profiles.json'
+        json_path = options.get('json_path') or 'data/seed_profiles.json'
         try:
             with open(json_path, 'r', encoding='utf-8') as f:
-                profiles = json.load(f)
+                profiles = json.load(f)["profiles"]
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"Failed to load profiles JSON: {e}"))
             return
@@ -33,7 +33,7 @@ class Command(BaseCommand):
             obj, created_flag = Profile.objects.get_or_create(
                 name=p['name'],
                 defaults={
-                    'id': uuid.uuid7(),
+                    'id': uuid.uuid7,
                     'gender': p['gender'],
                     'gender_probability': p['gender_probability'],
                     'age': p['age'],
