@@ -2,8 +2,12 @@ from django.db import models
 import uuid
 from django.utils import timezone
 
+def generate_uuid():
+	"""Generate a UUID"""
+	return uuid.uuid7
+
 class Profile(models.Model):
-	id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
+	id = models.UUIDField(primary_key=True, default=generate_uuid, editable=False)
 	name = models.CharField(max_length=255, unique=True)
 	gender = models.CharField(max_length=10)
 	gender_probability = models.FloatField()
