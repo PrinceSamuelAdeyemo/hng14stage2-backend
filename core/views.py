@@ -62,10 +62,10 @@ class ProfileSearchView(APIView):
 	def get(self, request):
 		q = request.query_params.get("q", "").strip()
 		if not q:
-			return Response({"status": "error", "message": "Missing or empty parameter"}, status=400)
+			return self._error("Missing or empty parameter", 400)
 		filters = parse_natural_language_query(q)
 		if filters is None:
-			return Response({"status": "error", "message": "Unable to interpret query"}, status=400)
+			return self._error("Unable to interpret query", 400)
 		q_obj = Q()
 		if filters.get("gender"):
 			q_obj &= Q(gender=filters["gender"])
@@ -86,19 +86,42 @@ class ProfileSearchView(APIView):
 			if limit > 50:
 				limit = 50
 		except ValueError:
-			return Response({"status": "error", "message": "Invalid query parameters"}, status=422)
+			return self._error("Invalid query parameters", 422)
 		queryset = Profile.objects.filter(q_obj)
 		total = queryset.count()
 		offset = (page - 1) * limit
+		if offset >= total and total > 0:
+			return self._error("Page overlap detected or insufficient records", 400)
 		result_page = queryset[offset:offset+limit]
 		serializer = ProfileSerializer(result_page, many=True)
-		return Response({
+		resp = Response({
 			"status": "success",
 			"page": page,
 			"limit": limit,
 			"total": total,
-			"data": serializer.data
+			"data": [self._format_profile(p) for p in result_page]
 		}, status=200)
+		resp["Access-Control-Allow-Origin"] = "*"
+		return resp
+
+	def _error(self, msg, code):
+		resp = Response({"status": "error", "message": msg}, status=code)
+		resp["Access-Control-Allow-Origin"] = "*"
+		return resp
+
+	def _format_profile(self, p):
+		return {
+			"id": str(p.id),
+			"name": p.name,
+			"gender": p.gender,
+			"gender_probability": float(p.gender_probability),
+			"age": int(p.age),
+			"age_group": p.age_group,
+			"country_id": p.country_id,
+			"country_name": p.country_name,
+			"country_probability": float(p.country_probability),
+			"created_at": p.created_at.replace(tzinfo=None).isoformat() + "Z" if p.created_at else None
+		}
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -130,7 +153,7 @@ class ProfileListView(APIView):
 			min_gender_probability = float(params.get("min_gender_probability")) if params.get("min_gender_probability") else None
 			min_country_probability = float(params.get("min_country_probability")) if params.get("min_country_probability") else None
 		except ValueError:
-			return Response({"status": "error", "message": "Invalid query parameters"}, status=422)
+			return self._error("Invalid query parameters", 422)
 		if min_age is not None:
 			filters &= Q(age__gte=min_age)
 		if max_age is not None:
@@ -143,7 +166,7 @@ class ProfileListView(APIView):
 		sort_by = params.get("sort_by", "created_at")
 		order = params.get("order", "desc")
 		if sort_by not in VALID_SORT_FIELDS or order not in VALID_ORDER:
-			return Response({"status": "error", "message": "Invalid query parameters"}, status=422)
+			return self._error("Invalid query parameters", 422)
 		ordering = ("-" if order == "desc" else "") + sort_by
 		# Pagination
 		try:
@@ -152,16 +175,38 @@ class ProfileListView(APIView):
 			if limit > 50:
 				limit = 50
 		except ValueError:
-			return Response({"status": "error", "message": "Invalid query parameters"}, status=422)
+			return self._error("Invalid query parameters", 422)
 		queryset = Profile.objects.filter(filters).order_by(ordering)
 		total = queryset.count()
 		offset = (page - 1) * limit
+		if offset >= total and total > 0:
+			return self._error("Page overlap detected or insufficient records", 400)
 		result_page = queryset[offset:offset+limit]
-		serializer = ProfileSerializer(result_page, many=True)
-		return Response({
+		resp = Response({
 			"status": "success",
 			"page": page,
 			"limit": limit,
 			"total": total,
-			"data": serializer.data
+			"data": [self._format_profile(p) for p in result_page]
 		}, status=200)
+		resp["Access-Control-Allow-Origin"] = "*"
+		return resp
+
+	def _error(self, msg, code):
+		resp = Response({"status": "error", "message": msg}, status=code)
+		resp["Access-Control-Allow-Origin"] = "*"
+		return resp
+
+	def _format_profile(self, p):
+		return {
+			"id": str(p.id),
+			"name": p.name,
+			"gender": p.gender,
+			"gender_probability": float(p.gender_probability),
+			"age": int(p.age),
+			"age_group": p.age_group,
+			"country_id": p.country_id,
+			"country_name": p.country_name,
+			"country_probability": float(p.country_probability),
+			"created_at": p.created_at.replace(tzinfo=None).isoformat() + "Z" if p.created_at else None
+		}
