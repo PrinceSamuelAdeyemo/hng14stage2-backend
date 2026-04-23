@@ -97,7 +97,7 @@ if os.environ.get('DATABASE_URL'):
             conn_max_age=600,
         )
     }
-    print('Using production db')
+    print("Using production db")
 else:
     DATABASES = {
         'default': {
